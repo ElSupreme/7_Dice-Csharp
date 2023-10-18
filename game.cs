@@ -1,5 +1,4 @@
 // Game coded by JT Stukes
-// Dice Roller
 // A game by JT Stukes, copied from a physical game with the same rules
 
 using System.ComponentModel;
@@ -10,12 +9,12 @@ using System.Runtime.InteropServices;
 using System.Runtime.Serialization.Json;
 using System.Xml.XPath;
 
-int diceSides = 6; // potentially change to 0 to 9 (1-9 or 1-10)
-int diceCount = 5; // must be >0 up to any amount, checker/solver may suffer or not function
+int diceSides = 6; // standard six sided dice or any number really
+int diceCount = 5; // must be >0 up to any amount, 5 dice = 3.7 million boards ~1sec, 6 dice = 672 million boards ~minutes
 
 int[] gameBoard = GameRoll(diceSides, diceCount);
 
-// PrintGameBoard(gameBoard);
+// Rolling dice and creating a gameboard, with printer
 
 int DiceRoll(int sides)
 {
@@ -49,15 +48,11 @@ void PrintGameBoard(int[] gameBoard)
 
 
 
-/*
-CHECKER
-*/
-
-// Defineing operators: a = add = 0, s = subtract = 1, m = multiply = 2, d = divide by = 3, p = exponentiation = 4, r = root = 5(done at later time)
+// Creating a solver that iterates ALL possible solutions - no shortcutting or reducing due to duplicates, or transitive property of + or *
 
 int countSolved = 0;
 int countChecked = 0;
-char[] operators = { '+', '-', '*', '/', '^', 'V' };
+char[] operators = { '+', '-', '*', '/', '^', 'V' }; // using 'V' to denote square root
 int goal = 0;
 bool displayResults = true;
 
@@ -92,7 +87,7 @@ void SolverWrapper(int[] gameBoard)
 
 }
 
-// Solver designed to call itself, use one less array value per iteration (not reducce array length), and trace operations, print good vaues.
+// Solver designed to call itself, reducing array length
 void SolveGame(string[] answerPath, int[] workingSet)
 {
     // mathOperation called from above foreach loop
@@ -100,7 +95,7 @@ void SolveGame(string[] answerPath, int[] workingSet)
     if (workingSet.Length == 1)
     {
         countChecked++;
-        if (countChecked % 1000000 == 0)
+        if (countChecked % 1000000 == 0) // print a status for large die counts to show progress
         {
             Console.WriteLine($"Checked {countChecked}");
         }
@@ -109,18 +104,17 @@ void SolveGame(string[] answerPath, int[] workingSet)
             countSolved++;
             if (displayResults)
             {
-                PrintSolution(answerPath, workingSet[0]);
+                PrintSolution(answerPath, workingSet[0]); // prints answerPath for each solution, but does not save anywhere
             }
             return;
         }
     }
 
-    // working set is reduced and solver called
     for (int i = 0; i < workingSet.Length; i++)
     {
         for (int j = 0; j < workingSet.Length; j++)
         {
-            if (i != j)
+            if (i != j) // cannot use the same die twice
             {
                 foreach (char mathOperator in operators)
                 {
@@ -147,7 +141,8 @@ int[] ArrayMinusOne(int i, int j, char mathOperator, int[] setToBeReduced)
     int[] newWorkingSet = new int[setToBeReduced.Length - 1];
     int newValue = -1;
 
-    switch (mathOperator)
+// combine i and j values based on operator
+    switch (mathOperator) 
     {
         case '+':
             newValue = GameAdd(setToBeReduced[i], setToBeReduced[j]);
@@ -168,7 +163,7 @@ int[] ArrayMinusOne(int i, int j, char mathOperator, int[] setToBeReduced)
             newValue = GameRoot(setToBeReduced[i], setToBeReduced[j]);
             break;
     }
-
+// making sure last value is not still valid
     if (i == newWorkingSet.Length)
     {
         setToBeReduced[j] = newValue;
@@ -190,6 +185,8 @@ int[] ArrayMinusOne(int i, int j, char mathOperator, int[] setToBeReduced)
     }
     return newWorkingSet;
 }
+
+// GameOperators shorcut some operations based on basic rules, -9999 auto skips all future depth
 
 int GameAdd(int first, int second)
 {
@@ -287,5 +284,5 @@ void PrintSolution(string[] answerPath, int combinedValue)
     {
         Console.Write($"{result}");
     }
-    Console.WriteLine($"Answer count {countSolved}, result: {combinedValue}, goal: {goal}");
+    Console.WriteLine($" Answer count {countSolved}, result: {combinedValue}, goal: {goal}");
 }
